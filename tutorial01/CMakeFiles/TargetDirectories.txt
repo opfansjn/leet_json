@@ -1,0 +1,2 @@
+/home/opfansjn/github/json-tutorial/tutorial01/CMakeFiles/leptjson.dir
+/home/opfansjn/github/json-tutorial/tutorial01/CMakeFiles/leptjson_test.dir
