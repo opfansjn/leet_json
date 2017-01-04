@@ -99,6 +99,11 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
                 lept_set_string(v, (const char*)lept_context_pop(c, len), len);
                 c->json = p;
                 return LEPT_PARSE_OK;
+			case '\\':
+				if(*(p+1) == 'n')
+					PUTC(c,'\\');
+					PUTC(c,'\\');
+				PUTC(c,ch);
             case '\0':
                 c->top = head;
                 return LEPT_PARSE_MISS_QUOTATION_MARK;
@@ -154,11 +159,14 @@ lept_type lept_get_type(const lept_value* v) {
 
 int lept_get_boolean(const lept_value* v) {
     /* \TODO */
-    return 0;
+	assert(v != NULL);
+    return v->type;
 }
 
 void lept_set_boolean(lept_value* v, int b) {
     /* \TODO */
+	assert(v!=NULL);
+	v->type=!b;
 }
 
 double lept_get_number(const lept_value* v) {
@@ -168,6 +176,8 @@ double lept_get_number(const lept_value* v) {
 
 void lept_set_number(lept_value* v, double n) {
     /* \TODO */
+	assert(v != NULL);
+	v->u.n = n;
 }
 
 const char* lept_get_string(const lept_value* v) {
