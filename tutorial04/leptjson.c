@@ -93,36 +93,41 @@ static int lept_parse_number(lept_context* c, lept_value* v) {
 static const char* lept_parse_hex4(const char* p, unsigned* u) {
     /* \TODO */
 	*u = 0;
-	for(int i =0;i < 4;i++){
-		if(*p >= '0' && *p <= '9')
-			*u = *u<<(4*(3-i)) + (0xf & (*p - '0'));
-		else if(*p >= 'A' && *p <='Z')
-			*u = *u<<(4*(3-i)) + (0xf & (*p - '10'));
-		else if(*p >= 'a' && *p <='z')
-			*u = *u<<(4*(3-i)) + (0xf & (*p - '30'));
+	int i;
+	char ch ;
+	for(i =0;i < 4;i++){
+		ch = *p++;
+		*u = *u << 4;
+		if(ch >= '0' && ch <= '9')
+			*u = *u |  (ch - '0');
+		else if(ch >= 'A' && ch<= 'F')
+			*u = *u |  (ch - ('A' - 10));
+		else if(ch >= 'a' && ch <= 'f')
+			*u = *u |  (ch - ('a' - 10));
 		else 
 		/*\TODO */
-			;
-		p++;
+			return NULL;
+	
 	}		
     return p;
 }
 
 static void lept_encode_utf8(lept_context* c, unsigned u) {
     /* \TODO */
-	if(u >= 0x0000 && u <= 0x007f){
-		PUTC(c,0xff|u); 
+	if( u <= 0x007f){
+		PUTC(c,0xff & u); 
 	}
-	if(u >= 0x0080 && u <= 0x07ff){
+	else if( u <= 0x07ff){
 		PUTC(c,(0xc0 | ((u >> 6) & 0x1f)));
 		PUTC(c,(0x80 | ( u       & 0x3f)));
 	}
-	if(u >= 0x0800 && u <= 0xffff){
+	else if(u <= 0xffff){
 		PUTC(c,(0xe0 | ((u >> 12)& 0xff)));
 		PUTC(c,(0x80 | ((u >> 6) & 0x3f)));
 		PUTC(c,(0x80 | ( u       & 0x3f)));
 	}
-	if(u >= 0x10000 &&  <= 0x10ffff){
+	else {
+		assert(u <= 0x10ffff);
 		PUTC(c,(0xf0 | ((u >> 18)& 0xff)));
 		PUTC(c,(0x80 | ((u >> 12)& 0x3f)));
 		PUTC(c,(0x80 | ((u >> 6 )& 0x3f)));
@@ -162,10 +167,17 @@ static int lept_parse_string(lept_context* c, lept_value* v) {
                             STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
                         /* \TODO surrogate handling */
 						if(u >= 0xd800 && u <= 0xdbff){
+							if(*p++ != '\\')
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
+							if(*p++ != 'u')
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);
 							if(!(p = lept_parse_hex4(p, &u1)))
 								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_HEX);
-														
-
+							if(u1 >= 0xDC00 && u1 <= 0xDFFF){
+								u = 0x10000 + (u - 0xd800) * 0x400 + (u1 - 0xDC00);
+							}
+							else
+								STRING_ERROR(LEPT_PARSE_INVALID_UNICODE_SURROGATE);								
 						}
                         lept_encode_utf8(c, u);
                         break;
